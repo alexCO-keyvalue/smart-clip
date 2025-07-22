@@ -6,9 +6,6 @@ const axios = require('axios');
 const QuickAccessWindow = require('./windows/QuickAccessWindow');
 const MainDashboardWindow = require('./windows/MainDashboardWindow');
 
-// Import shared utilities
-const { detectContentType } = require('./renderer/shared/utils');
-
 let quickAccessWindow;
 let dashboardWindow;
 let tray;
