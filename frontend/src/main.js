@@ -1,11 +1,16 @@
-const { app, BrowserWindow, Tray, Menu, globalShortcut, clipboard, screen } = require('electron');
+const { app, BrowserWindow, Tray, Menu, globalShortcut, clipboard, ipcMain, screen } = require('electron');
 const path = require('path');
 const axios = require('axios');
 
-// Remove this line:
-// const { activeWindow } = require('get-windows');
+// Import window managers
+const QuickAccessWindow = require('./windows/QuickAccessWindow');
+const MainDashboardWindow = require('./windows/MainDashboardWindow');
 
-let mainWindow;
+// Import shared utilities
+const { detectContentType } = require('./renderer/shared/utils');
+
+let quickAccessWindow;
+let dashboardWindow;
 let tray;
 let isQuitting = false;
 
@@ -26,33 +31,28 @@ async function initializeGetWindows() {
   }
 }
 
-function createWindow() {
-  mainWindow = new BrowserWindow({
-    width: 400,
-    height: 600,
-    show: true,
-    frame: false,
-    resizable: false,
-    alwaysOnTop: true,
-    skipTaskbar: true,
-    webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: false
-    }
-  });
 
-  mainWindow.loadFile('public/index.html');
+function createWindows() {
+  // Create quick access window (current functionality)
+  quickAccessWindow = new QuickAccessWindow();
+  quickAccessWindow.create();
 
-  mainWindow.on('close', (event) => {
+  // Create dashboard window (placeholder for now)
+  dashboardWindow = new MainDashboardWindow();
+  dashboardWindow.create();
+
+  // Handle window close events
+  quickAccessWindow.getWindow().on('close', (event) => {
     if (!isQuitting) {
       event.preventDefault();
-      mainWindow.hide();
+      quickAccessWindow.hide();
     }
   });
 
-  mainWindow.on('blur', () => {
-    if (!mainWindow.webContents.isDevToolsOpened()) {
-      mainWindow.hide();
+  dashboardWindow.getWindow().on('close', (event) => {
+    if (!isQuitting) {
+      event.preventDefault();
+      dashboardWindow.hide();
     }
   });
 }
@@ -63,10 +63,19 @@ function createTray() {
   
   const contextMenu = Menu.buildFromTemplate([
     {
-      label: 'Show Clipboard History',
+      label: 'Show Quick Access',
       click: () => {
-        showClipboardHistory();
+        showQuickAccess();
       }
+    },
+    {
+      label: 'Show Dashboard',
+      click: () => {
+        showDashboard();
+      }
+    },
+    {
+      type: 'separator'
     },
     {
       label: 'Quit',
@@ -81,18 +90,19 @@ function createTray() {
   tray.setContextMenu(contextMenu);
   
   tray.on('click', () => {
-    showClipboardHistory();
+    showQuickAccess();
   });
 }
 
-function showClipboardHistory() {
-  if (mainWindow) {
-    if (mainWindow.isVisible()) {
-      mainWindow.hide();
-    } else {
-      mainWindow.show();
-      mainWindow.focus();
-    }
+function showQuickAccess() {
+  if (quickAccessWindow) {
+    quickAccessWindow.show();
+  }
+}
+
+function showDashboard() {
+  if (dashboardWindow) {
+    dashboardWindow.show();
   }
 }
 
@@ -386,15 +396,24 @@ function monitorClipboard() {
   }, 1000);
 }
 
+// Content type detection moved to shared utils
+
+// IPC handlers for renderer processes
+ipcMain.on('hide-quick-access', () => {
+  if (quickAccessWindow) {
+    quickAccessWindow.hide();
+  }
+});
+
 app.whenReady().then(async () => {
   // Initialize get-windows before creating the window
   await initializeGetWindows();
-  
-  createWindow();
+  createWindows();
   createTray();
   
+  // Register global shortcut Ctrl+Shift+V for quick access
   globalShortcut.register('CommandOrControl+Shift+V', () => {
-    showClipboardHistory();
+    showQuickAccess();
   });
   
   monitorClipboard();
