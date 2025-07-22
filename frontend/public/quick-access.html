@@ -23,6 +23,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            -webkit-app-region: drag; /* Make header draggable */
         }
         
         .title {
@@ -38,6 +39,7 @@
             color: white;
             font-size: 12px;
             width: 200px;
+            -webkit-app-region: no-drag; /* Prevent search box from being draggable */
         }
         
         .search-box::placeholder {
@@ -122,6 +124,129 @@
         </div>
     </div>
 
-    <script src="../src/renderer/quick-access.js"></script>
+    <script>
+        const { clipboard } = require('electron');
+        const axios = require('axios');
+        
+        const API_BASE = 'http://127.0.0.1:8000';
+        let clipboardEntries = [];
+        let isSearching = false;
+        
+        console.log('Quick access script loaded');
+        
+        // Load clipboard history
+        async function loadClipboardHistory() {
+            console.log('Loading clipboard history...');
+            try {
+                const response = await axios.get(`${API_BASE}/api/clipboard`);
+                clipboardEntries = response.data;
+                console.log('Loaded', clipboardEntries.length, 'clipboard entries');
+                renderClipboardList(clipboardEntries);
+            } catch (error) {
+                console.error('Failed to load clipboard history:', error);
+                document.getElementById('clipboardList').innerHTML = 
+                    '<div class="no-items">Failed to connect to backend.<br>Make sure the FastAPI server is running.</div>';
+            }
+        }
+
+        // Render clipboard list
+        function renderClipboardList(entries) {
+            const listElement = document.getElementById('clipboardList');
+            
+            if (entries.length === 0) {
+                listElement.innerHTML = '<div class="no-items">No clipboard entries found.</div>';
+                return;
+            }
+            
+            listElement.innerHTML = entries.map(entry => `
+                <div class="clipboard-item" onclick="selectClipboardItem('${entry.id}', '${escapeHtml(entry.content)}')">
+                    <div class="item-content">${escapeHtml(entry.content)}</div>
+                    <div class="item-meta">
+                        <div>
+                            <span class="item-tags">
+                                ${entry.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
+                            </span>
+                        </div>
+                        <div>${formatTime(entry.timestamp)}</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Select clipboard item and copy to clipboard
+        function selectClipboardItem(id, content) {
+            clipboard.writeText(content);
+            console.log('Copied to clipboard:', content.substring(0, 50) + '...');
+            
+            // Hide window after selection
+            const { remote } = require('electron');
+            const currentWindow = remote.getCurrentWindow();
+            currentWindow.hide();
+        }
+
+        // Search functionality
+        document.getElementById('searchBox').addEventListener('input', async (e) => {
+            const query = e.target.value.trim();
+            
+            if (query === '') {
+                isSearching = false;
+                // Fetch fresh data when clearing search
+                await loadClipboardHistory();
+                return;
+            }
+            
+            isSearching = true;
+            
+            try {
+                const response = await axios.get(`${API_BASE}/api/clipboard/search?q=${encodeURIComponent(query)}`);
+                renderClipboardList(response.data);
+            } catch (error) {
+                console.error('Search failed:', error);
+            }
+        });
+
+        // Utility functions
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function formatTime(timestamp) {
+            const date = new Date(timestamp);
+            const now = new Date();
+            const diff = now - date;
+            
+            if (diff < 60000) return 'Just now';
+            if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+            if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
+            return date.toLocaleDateString();
+        }
+
+        // Load data when window opens
+        window.addEventListener('DOMContentLoaded', () => {
+            console.log('DOM loaded, loading clipboard history');
+            loadClipboardHistory();
+        });
+
+        // Listen for refresh events from main process
+        const { ipcRenderer } = require('electron');
+        ipcRenderer.on('refresh-data', () => {
+            console.log('Received refresh-data event');
+            // Only refresh if not actively searching
+            if (!isSearching) {
+                loadClipboardHistory();
+            }
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                const { remote } = require('electron');
+                const currentWindow = remote.getCurrentWindow();
+                currentWindow.hide();
+            }
+        });
+    </script>
 </body>
 </html> 

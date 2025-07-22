@@ -15,6 +15,7 @@ class QuickAccessWindow {
       resizable: false,
       alwaysOnTop: true,
       skipTaskbar: true,
+      movable: true, // Enable window dragging
       webPreferences: {
         nodeIntegration: true,
         contextIsolation: false
@@ -38,6 +39,7 @@ class QuickAccessWindow {
       if (this.window.isVisible()) {
         this.hide();
       } else {
+        console.log('Showing quick access window');
         this.window.show();
         this.window.focus();
         // Trigger refresh of clipboard data

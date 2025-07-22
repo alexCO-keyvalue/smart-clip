@@ -11,6 +11,7 @@ class ApiClient {
   async getClipboardHistory() {
     try {
       const response = await axios.get(`${this.baseURL}/api/clipboard`);
+      console.log(response.data);
       return response.data;
     } catch (error) {
       console.error('Failed to load clipboard history:', error);
