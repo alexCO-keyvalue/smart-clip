@@ -342,13 +342,11 @@
             }
             
             listElement.innerHTML = entries.map(entry => `
-                <div class="clipboard-item" onclick="selectClipboardItem('${entry.id}', '${escapeHtml(entry.content)}')">
-                    <div class="item-content">${escapeHtml(entry.content)}</div>
+                <div class="clipboard-item" onclick="selectClipboardItem('${entry.id}', '${escapeHtml(entry.content.text)}')">
+                    <div class="item-content">${escapeHtml(entry.content.text)}</div>
                     <div class="item-meta">
                         <div>
-                            <span class="item-tags">
-                                ${entry.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
-                            </span>
+                            <span class="item-type">${entry.type}</span>
                         </div>
                         <div class="item-timestamp">${formatTime(entry.timestamp)}</div>
                     </div>

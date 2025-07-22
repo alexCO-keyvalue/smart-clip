@@ -21,7 +21,7 @@ code: "import os\\nprint(os.getcwd())", "def main():\\n    print('Hello, world!'
 Category:"""
 
     response = llm(prompt, stop=["\n"], max_tokens=10)
-    return response['choices'][0]['text'].strip().lower()
+    return response['choices'][0]['text'].strip().lower() if response['choices'][0]['text'] else "unknown"
 
 
 def get_title(content: str) -> str:
