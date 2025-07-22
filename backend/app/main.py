@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from typing import List, Optional
 import datetime
 import uuid
+from .services.categorization import categorize_content, get_title
 
 app = FastAPI(title="Smart Clipboard API", version="1.0.0")
 
@@ -22,10 +23,11 @@ clipboard_entries = []
 class ClipboardEntry(BaseModel):
     id: Optional[str] = None
     content: str
-    type: str  # text, url, code, image
+    type: Optional[str] = None  # Auto-generated, not required in input
     source_app: Optional[str] = None
     tags: List[str] = []
     timestamp: Optional[datetime.datetime] = None
+    title: Optional[str] = None
 
 @app.get("/")
 async def root():
@@ -36,13 +38,9 @@ async def store_clipboard_entry(entry: ClipboardEntry):
     entry.id = str(uuid.uuid4())
     entry.timestamp = datetime.datetime.now()
     
-    # Basic auto-tagging logic
-    if entry.type == "text":
-        if "http" in entry.content.lower():
-            entry.tags.append("url")
-        if any(keyword in entry.content.lower() for keyword in ["def ", "function", "class ", "import"]):
-            entry.tags.append("code")
-    
+    # Auto-categorize content using ML model
+    entry.tags.append(categorize_content(entry.content))
+    entry.title = get_title(entry.content)
     clipboard_entries.append(entry)
     return entry
 
@@ -57,7 +55,8 @@ async def search_clipboard_entries(q: str, limit: int = 20):
     
     for entry in clipboard_entries:
         if (query in entry.content.lower() or 
-            any(query in tag.lower() for tag in entry.tags)):
+            any(query in tag.lower() for tag in entry.tags) or
+            query in entry.type.lower()):
             results.append(entry)
     
     return sorted(results, key=lambda x: x.timestamp, reverse=True)[:limit]
