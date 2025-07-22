@@ -18,6 +18,7 @@ class CustomJSONEncoder(json.JSONEncoder):
         if hasattr(obj, 'model_dump'):  # Pydantic v2
             return obj.model_dump()
         return super().default(obj)
+from .services.categorization import categorize_content, get_title
 
 app = FastAPI(title="Smart Clipboard API", version="1.0.0")
 
@@ -93,6 +94,7 @@ class ClipboardEntry(BaseModel):
     context: SourceContext
     tags: List[str] = []
     timestamp: Optional[datetime.datetime] = None
+    title: Optional[str] = None
     
     def to_json_dict(self):
         """Convert to JSON-serializable dictionary"""
@@ -112,30 +114,9 @@ async def store_clipboard_entry(entry: ClipboardEntry):
     text_content = entry.content.text or ""
     source_app = entry.context.source_app or "unknown"
     
-    # Detect likely source applications based on content AND detected app
-    if entry.type == "code":
-        if "def " in text_content or "import " in text_content:
-            entry.tags.append("python-editor")
-        elif "function " in text_content:
-            entry.tags.append("javascript-editor")
-        elif "#include" in text_content or "int main" in text_content:
-            entry.tags.append("c-editor")
-        entry.tags.append("ide")
-    
-    elif entry.type == "url" or entry.content.bookmark:
-        entry.tags.append("browser")
-        
-    elif entry.type == "rich_text" and entry.content.html:
-        entry.tags.append("web-page")
-        
-    elif entry.type == "file_path":
-        entry.tags.append("file-manager")
-        
-    elif entry.type == "image":
-        entry.tags.append("screenshot-tool")
-    
-    elif entry.type == "json":
-        entry.tags.append("api-tool")
+    entry.type = categorize_content(entry.content)
+    entry.title = get_title(entry.content)
+
     
     # Enhanced app-specific tagging based on detected source
     if source_app and source_app != "unknown" and source_app != "detection-failed":
