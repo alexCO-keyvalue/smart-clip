@@ -33,7 +33,7 @@ sleep 2
 # Start frontend Electron app
 echo "🖥️  Starting Electron frontend..."
 cd ../frontend
-npm run dev &
+npm run dev --no-sandbox &
 FRONTEND_PID=$!
 echo "✅ Frontend started (PID: $FRONTEND_PID)"
 
