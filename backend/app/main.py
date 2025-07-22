@@ -106,7 +106,7 @@ class ClipboardEntry(BaseModel):
 async def store_clipboard_entry(entry: ClipboardEntry):
     entry.id = str(uuid.uuid4())
     entry.timestamp = datetime.datetime.now()
-    print(f"DB_ Received clipboard entry: {json.dumps(entry.to_json_dict(), cls=CustomJSONEncoder)}")
+    # print(f"DB_ Received clipboard entry: {json.dumps(entry.to_json_dict(), cls=CustomJSONEncoder)}")
     
     # Enhanced source-focused tagging
     text_content = entry.content.text or ""
