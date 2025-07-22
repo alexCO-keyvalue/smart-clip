@@ -5,122 +5,305 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Smart Clip - Quick Access</title>
     <style>
+        * {
+            box-sizing: border-box;
+        }
+
         body {
             margin: 0;
             padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: rgba(30, 30, 30, 0.95);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', sans-serif;
+            background: transparent; /* Fully transparent to see through */
             color: white;
-            backdrop-filter: blur(10px);
             height: 100vh;
             overflow: hidden;
+            position: relative;
+        }
+
+        .container {
+            position: relative;
+            z-index: 2;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            background: linear-gradient(135deg, 
+                rgba(20, 40, 80, 0.7), 
+                rgba(30, 60, 120, 0.6));
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Glass overlay effect on container */
+        .container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, 
+                rgba(255, 255, 255, 0.15) 0%,
+                rgba(255, 255, 255, 0.05) 50%,
+                rgba(255, 255, 255, 0.02) 100%);
+            pointer-events: none;
+            z-index: 1;
+            border-radius: 16px;
         }
         
         .header {
-            padding: 10px 15px;
-            background: rgba(0, 0, 0, 0.3);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+            z-index: 2;
+            padding: 16px 20px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.15);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            -webkit-app-region: drag; /* Make header draggable */
+            -webkit-app-region: drag;
+            border-radius: 16px 16px 0 0;
+            box-shadow: 0 1px 20px rgba(0, 0, 0, 0.1);
         }
         
         .title {
-            font-size: 14px;
-            font-weight: 600;
+            font-size: 16px;
+            font-weight: 700;
+            color: rgba(255, 255, 255, 0.95);
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .title::before {
+            content: '📋';
+            font-size: 18px;
+            filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
         }
         
         .search-box {
-            padding: 8px 15px;
-            background: rgba(255, 255, 255, 0.1);
-            border: none;
-            border-radius: 4px;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
             color: white;
-            font-size: 12px;
-            width: 200px;
-            -webkit-app-region: no-drag; /* Prevent search box from being draggable */
+            font-size: 14px;
+            font-weight: 500;
+            width: 240px;
+            -webkit-app-region: no-drag;
+            transition: all 0.3s ease;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .search-box:focus {
+            outline: none;
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(100, 150, 255, 0.6);
+            box-shadow: 0 0 0 3px rgba(100, 150, 255, 0.2), inset 0 1px 3px rgba(0, 0, 0, 0.1);
         }
         
         .search-box::placeholder {
-            color: rgba(255, 255, 255, 0.5);
+            color: rgba(255, 255, 255, 0.6);
         }
         
         .clipboard-list {
-            height: calc(100vh - 60px);
+            position: relative;
+            z-index: 2;
+            flex: 1;
             overflow-y: auto;
-            padding: 5px;
+            padding: 16px;
+            gap: 12px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Custom scrollbar */
+        .clipboard-list::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .clipboard-list::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+        }
+
+        .clipboard-list::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+        }
+
+        .clipboard-list::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3);
         }
         
         .clipboard-item {
-            background: rgba(255, 255, 255, 0.05);
-            margin: 5px 0;
-            padding: 10px;
-            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            margin: 0;
+            padding: 16px 18px;
+            border-radius: 14px;
             cursor: pointer;
-            border: 1px solid transparent;
-            transition: all 0.2s ease;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+        }
+
+        .clipboard-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, 
+                rgba(255, 255, 255, 0.1) 0%,
+                rgba(255, 255, 255, 0.05) 100%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+
+        .clipboard-item:hover::before {
+            opacity: 1;
         }
         
         .clipboard-item:hover {
-            background: rgba(255, 255, 255, 0.1);
-            border-color: rgba(100, 150, 255, 0.5);
+            background: rgba(255, 255, 255, 0.12);
+            border-color: rgba(100, 150, 255, 0.4);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(100, 150, 255, 0.2);
+        }
+
+        .clipboard-item:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
         }
         
         .item-content {
-            font-size: 13px;
-            line-height: 1.4;
-            margin-bottom: 5px;
-            max-height: 60px;
+            font-size: 14px;
+            font-weight: 500;
+            line-height: 1.5;
+            margin-bottom: 12px;
+            max-height: 80px;
             overflow: hidden;
             text-overflow: ellipsis;
+            color: rgba(255, 255, 255, 0.95);
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+            position: relative;
+            z-index: 1;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
         }
         
         .item-meta {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            font-size: 11px;
-            color: rgba(255, 255, 255, 0.6);
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.7);
+            position: relative;
+            z-index: 1;
         }
         
         .item-type {
-            background: rgba(100, 150, 255, 0.3);
-            padding: 2px 6px;
-            border-radius: 3px;
-            font-size: 10px;
+            background: linear-gradient(135deg, rgba(100, 150, 255, 0.4), rgba(80, 120, 255, 0.3));
+            padding: 4px 8px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 600;
+            border: 1px solid rgba(100, 150, 255, 0.3);
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
         }
         
         .item-tags {
             display: flex;
-            gap: 4px;
+            gap: 6px;
+            flex-wrap: wrap;
         }
         
         .tag {
-            background: rgba(255, 100, 100, 0.3);
-            padding: 2px 4px;
-            border-radius: 2px;
-            font-size: 9px;
+            background: linear-gradient(135deg, rgba(255, 120, 120, 0.4), rgba(255, 100, 100, 0.3));
+            padding: 3px 8px;
+            border-radius: 8px;
+            font-size: 10px;
+            font-weight: 600;
+            border: 1px solid rgba(255, 120, 120, 0.3);
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+        }
+
+        .item-timestamp {
+            font-weight: 500;
+            color: rgba(255, 255, 255, 0.6);
         }
         
         .no-items {
             text-align: center;
-            padding: 50px 20px;
-            color: rgba(255, 255, 255, 0.5);
-            font-size: 14px;
+            padding: 60px 20px;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 16px;
+            font-weight: 500;
+            line-height: 1.6;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+        }
+
+        .no-items::before {
+            content: '📋';
+            display: block;
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+        }
+
+        /* Loading animation */
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .loading-shimmer {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .loading-shimmer::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, 
+                transparent 0%, 
+                rgba(255, 255, 255, 0.1) 50%, 
+                transparent 100%);
+            animation: shimmer 2s infinite;
         }
     </style>
 </head>
 <body>
-    <div class="header">
-        <div class="title">📋 Quick Access</div>
-        <input type="text" class="search-box" placeholder="Search clipboard..." id="searchBox">
-    </div>
-    
-    <div class="clipboard-list" id="clipboardList">
-        <div class="no-items">
-            No clipboard entries yet.<br>
-            Start copying text and it will appear here!
+    <div class="container">
+        <div class="header">
+            <div class="title">Quick Access</div>
+            <input type="text" class="search-box" placeholder="Search clipboard..." id="searchBox">
+        </div>
+        
+        <div class="clipboard-list" id="clipboardList">
+            <div class="no-items">
+                No clipboard entries yet.<br>
+                Start copying text and it will appear here!
+            </div>
         </div>
     </div>
 
@@ -167,7 +350,7 @@
                                 ${entry.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
                             </span>
                         </div>
-                        <div>${formatTime(entry.timestamp)}</div>
+                        <div class="item-timestamp">${formatTime(entry.timestamp)}</div>
                     </div>
                 </div>
             `).join('');

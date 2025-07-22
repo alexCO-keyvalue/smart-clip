@@ -1,4 +1,4 @@
-const { BrowserWindow } = require('electron');
+const { BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 
 class MainDashboardWindow {
@@ -11,6 +11,11 @@ class MainDashboardWindow {
       width: 800,
       height: 600,
       show: false,
+      frame: false,
+      resizable: true,
+      transparent: true, // Enable window transparency
+      backgroundColor: 'rgba(0, 0, 0, 0)', // Fully transparent background
+      vibrancy: 'ultra-dark', // macOS vibrancy effect
       webPreferences: {
         nodeIntegration: true,
         contextIsolation: false
@@ -18,6 +23,27 @@ class MainDashboardWindow {
     });
 
     this.window.loadFile('public/dashboard.html');
+
+    // Handle window controls
+    ipcMain.on('window-control', (event, action) => {
+      if (event.sender === this.window.webContents) {
+        switch (action) {
+          case 'close':
+            this.window.close();
+            break;
+          case 'minimize':
+            this.window.minimize();
+            break;
+          case 'maximize':
+            if (this.window.isMaximized()) {
+              this.window.unmaximize();
+            } else {
+              this.window.maximize();
+            }
+            break;
+        }
+      }
+    });
 
     return this.window;
   }

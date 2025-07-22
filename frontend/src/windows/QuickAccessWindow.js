@@ -16,6 +16,9 @@ class QuickAccessWindow {
       alwaysOnTop: true,
       skipTaskbar: true,
       movable: true, // Enable window dragging
+      transparent: true, // Enable window transparency
+      backgroundColor: 'rgba(0, 0, 0, 0)', // Fully transparent background
+      vibrancy: 'ultra-dark', // macOS vibrancy effect
       webPreferences: {
         nodeIntegration: true,
         contextIsolation: false

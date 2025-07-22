@@ -5,49 +5,506 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Smart Clip - Dashboard</title>
     <style>
+        * {
+            box-sizing: border-box;
+        }
+
         body {
             margin: 0;
-            padding: 20px;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #f5f5f5;
-            color: #333;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', sans-serif;
+            background: transparent; /* Fully transparent to see through */
+            color: white;
+            min-height: 100vh;
+            position: relative;
+        }
+
+        .container {
+            position: relative;
+            z-index: 2;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            background: linear-gradient(135deg, 
+                rgba(20, 40, 80, 0.7), 
+                rgba(30, 60, 120, 0.6));
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Glass overlay effect on container */
+        .container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, 
+                rgba(255, 255, 255, 0.15) 0%,
+                rgba(255, 255, 255, 0.05) 50%,
+                rgba(255, 255, 255, 0.02) 100%);
+            pointer-events: none;
+            z-index: 1;
+            border-radius: 16px;
         }
         
         .header {
-            text-align: center;
-            margin-bottom: 50px;
+            position: relative;
+            z-index: 2;
+            padding: 24px 32px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            -webkit-app-region: drag;
+            border-radius: 16px 16px 0 0;
+            box-shadow: 0 1px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .header-content {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
         }
         
         .title {
-            font-size: 24px;
-            font-weight: 600;
-            margin-bottom: 10px;
+            font-size: 28px;
+            font-weight: 700;
+            color: rgba(255, 255, 255, 0.95);
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .title::before {
+            content: '📋';
+            font-size: 32px;
+            filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
         }
         
         .subtitle {
-            color: #666;
+            color: rgba(255, 255, 255, 0.7);
             font-size: 16px;
+            font-weight: 500;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+        }
+
+        .window-controls {
+            display: flex;
+            gap: 8px;
+            -webkit-app-region: no-drag;
+        }
+
+        .control-btn {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            transition: opacity 0.2s ease;
+        }
+
+        .control-btn:hover {
+            opacity: 0.8;
+        }
+
+        .close-btn {
+            background: #ff5f57;
+        }
+
+        .minimize-btn {
+            background: #ffbd2e;
+        }
+
+        .maximize-btn {
+            background: #28ca42;
+        }
+        
+        .main-content {
+            position: relative;
+            z-index: 2;
+            flex: 1;
+            padding: 32px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            overflow-y: auto;
+            max-height: calc(100vh - 120px);
+        }
+
+        /* Custom scrollbar for main content */
+        .main-content::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .main-content::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+        }
+
+        .main-content::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+        }
+
+        .main-content::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            padding: 20px;
+            border-radius: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, 
+                rgba(255, 255, 255, 0.1) 0%,
+                rgba(255, 255, 255, 0.05) 100%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+
+        .stat-card:hover::before {
+            opacity: 1;
+        }
+
+        .stat-card:hover {
+            background: rgba(255, 255, 255, 0.12);
+            border-color: rgba(100, 150, 255, 0.4);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .stat-number {
+            font-size: 32px;
+            font-weight: 700;
+            color: rgba(255, 255, 255, 0.95);
+            margin-bottom: 8px;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+            position: relative;
+            z-index: 1;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.7);
+            font-weight: 500;
+            position: relative;
+            z-index: 1;
         }
         
         .coming-soon {
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            padding: 48px 32px;
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
             text-align: center;
-            padding: 100px 20px;
-            background: white;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .coming-soon::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, 
+                rgba(255, 255, 255, 0.1) 0%,
+                rgba(255, 255, 255, 0.05) 100%);
+            pointer-events: none;
+        }
+
+        .coming-soon h2 {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            color: rgba(255, 255, 255, 0.95);
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+            position: relative;
+            z-index: 1;
+        }
+
+        .coming-soon h2::before {
+            content: '🚀';
+            display: block;
+            font-size: 48px;
+            margin-bottom: 16px;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+        }
+
+        .coming-soon p {
+            font-size: 16px;
+            line-height: 1.6;
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 12px;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+            position: relative;
+            z-index: 1;
+        }
+
+        .shortcut-hint {
+            background: linear-gradient(135deg, rgba(100, 150, 255, 0.4), rgba(80, 120, 255, 0.3));
+            padding: 12px 20px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            border: 1px solid rgba(100, 150, 255, 0.3);
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+            margin-top: 20px;
+            display: inline-block;
+            position: relative;
+            z-index: 1;
+        }
+
+        .feature-preview {
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            padding: 32px;
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .feature-preview::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, 
+                rgba(255, 255, 255, 0.1) 0%,
+                rgba(255, 255, 255, 0.05) 100%);
+            pointer-events: none;
+        }
+
+        .feature-preview h3 {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: rgba(255, 255, 255, 0.95);
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+            position: relative;
+            z-index: 1;
+        }
+
+        .feature-list {
+            display: grid;
+            gap: 16px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .feature-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 16px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .feature-item:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(100, 150, 255, 0.3);
+            transform: translateY(-1px);
+        }
+
+        .feature-item h4 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: rgba(255, 255, 255, 0.95);
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+        }
+
+        .feature-item p {
+            font-size: 14px;
+            line-height: 1.5;
+            color: rgba(255, 255, 255, 0.75);
+            margin: 0;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Loading animation */
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .loading-shimmer {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .loading-shimmer::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, 
+                transparent 0%, 
+                rgba(255, 255, 255, 0.1) 50%, 
+                transparent 100%);
+            animation: shimmer 2s infinite;
         }
     </style>
 </head>
 <body>
-    <div class="header">
-        <div class="title">📋 Smart Clip Dashboard</div>
-        <div class="subtitle">Full-featured clipboard management</div>
+    <div class="container">
+        <div class="header">
+            <div class="header-content">
+                <div class="title">Smart Clip Dashboard</div>
+                <div class="subtitle">Full-featured clipboard management</div>
+            </div>
+            <div class="window-controls">
+                <button class="control-btn close-btn" onclick="closeWindow()"></button>
+                <button class="control-btn minimize-btn" onclick="minimizeWindow()"></button>
+                <button class="control-btn maximize-btn" onclick="maximizeWindow()"></button>
+            </div>
+        </div>
+        
+        <div class="main-content">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number">0</div>
+                    <div class="stat-label">Total Clips</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">0</div>
+                    <div class="stat-label">Today's Clips</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">0</div>
+                    <div class="stat-label">Tagged Items</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">0</div>
+                    <div class="stat-label">Favorites</div>
+                </div>
+            </div>
+
+            <div class="coming-soon">
+                <h2>Dashboard Coming Soon</h2>
+                <p>The full dashboard with advanced features is currently under development.</p>
+                <p>Features coming soon: tabs, advanced search, bulk operations, analytics, and more!</p>
+                <div class="shortcut-hint">
+                    Press Ctrl+Shift+V for quick access to your clipboard history
+                </div>
+            </div>
+
+            <!-- Additional content to test scrolling -->
+            <div class="feature-preview">
+                <h3>Upcoming Features</h3>
+                <div class="feature-list">
+                    <div class="feature-item">
+                        <h4>🔍 Advanced Search</h4>
+                        <p>Search through your clipboard history with powerful filters and regex support.</p>
+                    </div>
+                    <div class="feature-item">
+                        <h4>🏷️ Smart Tagging</h4>
+                        <p>Automatically tag clipboard entries based on content type and patterns.</p>
+                    </div>
+                    <div class="feature-item">
+                        <h4>📊 Analytics Dashboard</h4>
+                        <p>View detailed statistics about your clipboard usage patterns and trends.</p>
+                    </div>
+                    <div class="feature-item">
+                        <h4>🔄 Sync Across Devices</h4>
+                        <p>Keep your clipboard history synchronized across all your devices.</p>
+                    </div>
+                    <div class="feature-item">
+                        <h4>🛡️ Privacy Controls</h4>
+                        <p>Advanced privacy settings with sensitive content detection and filtering.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-    
-    <div class="coming-soon">
-        <h2>Dashboard Coming Soon</h2>
-        <p>The full dashboard with tabs, advanced search, and bulk operations will be implemented in Phase 3.</p>
-        <p>For now, use Ctrl+Shift+V for quick access to your clipboard history.</p>
-    </div>
+
+    <script>
+        const { ipcRenderer } = require('electron');
+        
+        function closeWindow() {
+            ipcRenderer.send('window-control', 'close');
+        }
+
+        function minimizeWindow() {
+            ipcRenderer.send('window-control', 'minimize');
+        }
+
+        function maximizeWindow() {
+            ipcRenderer.send('window-control', 'maximize');
+        }
+
+        // Load clipboard stats
+        async function loadStats() {
+            try {
+                const axios = require('axios');
+                const response = await axios.get('http://127.0.0.1:8000/api/clipboard');
+                const entries = response.data;
+                
+                // Update stats
+                const today = new Date().toDateString();
+                const todayEntries = entries.filter(entry => 
+                    new Date(entry.timestamp).toDateString() === today
+                );
+                const taggedEntries = entries.filter(entry => 
+                    entry.tags && entry.tags.length > 0
+                );
+
+                document.querySelector('.stat-card:nth-child(1) .stat-number').textContent = entries.length;
+                document.querySelector('.stat-card:nth-child(2) .stat-number').textContent = todayEntries.length;
+                document.querySelector('.stat-card:nth-child(3) .stat-number').textContent = taggedEntries.length;
+                document.querySelector('.stat-card:nth-child(4) .stat-number').textContent = 0; // Favorites not implemented yet
+            } catch (error) {
+                console.error('Failed to load stats:', error);
+            }
+        }
+
+        // Load stats when window opens
+        window.addEventListener('DOMContentLoaded', () => {
+            loadStats();
+        });
+    </script>
 </body>
 </html> 
