@@ -13,7 +13,7 @@ def categorize_content(content: str) -> str:
 - email
 - pii
 
-Content: \"\"\"{content.strip()}\"\"\"
+Content: \"\"\"{content}\"\"\"
 
 examples:
 code: "import os\\nprint(os.getcwd())", "def main():\\n    print('Hello, world!')", "class MyClass:\\n    def __init__(self, name):\\n        self.name = name"
@@ -27,7 +27,7 @@ Category:"""
 def get_title(content: str) -> str:
     prompt = f"""Generate a title for the following content. The title should be a single sentence that captures the main idea of the content:
 
-Content: \"\"\"{content.strip()}\"\"\"
+Content: \"\"\"{content}\"\"\"
 Title:"""
 
     response = llm(prompt, stop=["\n"], max_tokens=10)
